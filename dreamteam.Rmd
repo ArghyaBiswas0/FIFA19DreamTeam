@@ -1,0 +1,300 @@
+# FIFA 2019 PLAYER DATASET ANALYSIS
+___
+
+### Introduction:
+
+In this project, we are analysing the dataset correspondinding to the *FIFA19 Player Dataset*. *FIFA*, also known as *FIFA Football* or *FIFA Soccer*, is a series of association football video games or football simulator, released annually by Electronic Arts under the EA Sports label. Listed in Guinness World Records as the best-selling sports video game franchise in the world, by 2018, the FIFA series had sold over 260 million copies.
+The most recent iteration of FIFA features more than 18200 players and almost 90 player attributes worth of  unprocessed data which makes it ideal for data analysis.
+
+The dataset we used in this project can be downloaded from [here](https://www.kaggle.com/karangadiya/fifa19/download).
+
+With this project we hope to showcase basic data cleaning, data profiling, data manipulation, calculating some basic statistics, and performing exploratory data analysis.
+
+
+### Aim:
+
+The aim of our project is to **make a statistically accurate dream team** with the top 11 (and substitutes) players in their respective playing positions.
+
+
+### Extracting the Data:
+
+To start with the analysis, we start by importing the data. Make sure that the csv file is in the same working directory as your R environment. To get your R working directory, use the `getwd()` function. If you want to change your R working directory, you can do so by using the `setwd()` finction.
+
+```{r}
+rawdata <- read.csv("rawdata.csv")
+head(rawdata)
+```
+
+
+### Dropping Redundant Player Attributes:
+
+Out of the ~90 player attributes, there are certain player attributes which do not contribute in our analysis for making the dream team. Thus, we consider to drop these irrelevant attributes.
+
+```{r}
+rawdata$X <- NULL
+rawdata$Photo <- NULL
+rawdata$Age <- NULL
+rawdata$Nationality <- NULL
+rawdata$Flag <- NULL
+rawdata$Club.Logo <- NULL
+rawdata$Value <- NULL
+rawdata$Wage <- NULL
+rawdata$Work.Rate <- NULL
+rawdata$Body.Type <- NULL
+rawdata$Real.Face <- NULL
+rawdata$Jersey.Number <- NULL
+rawdata$Joined <- NULL
+rawdata$Loaned.From <- NULL
+rawdata$Contract.Valid.Until <- NULL
+rawdata$Height <- NULL
+rawdata$Weight <- NULL
+rawdata$Release.Clause <- NULL
+head(rawdata)
+```
+
+Let us now plot a histogram of the Overall score of all the players to get an understanding of the dataset we are working with.
+
+```{r}
+hist(rawdata$Overall,col="red",border="white",xlab="Overall",main="Histogram for Overall")
+```
+
+From the histogram, we can comprehend that there are ~500 players with 80+ Overall. Thus for the sake of eliminating redundant players and reducing the dataset, we will only consider the top 500 players with the highest Overall.
+
+```{r}
+rawdata <- rawdata[order(-rawdata$Overall),]
+rawdata <- rawdata[1:500,]
+dim(rawdata)
+```
+
+We will now export this dataset and all the actions that we perform in this project will be done on this reduced dataset.
+
+```{r}
+write.csv(rawdata,file = "data.csv")
+data <- read.csv("data.csv")
+head(data)
+```
+
+
+### Some Considerations:
+
+For our dream team, we are considering the 4-3-3 formation. 4-3-3 is considered to be on of the most versatile formations in football and the easiest to work with. 
+
+As such, we are looking at 1 goalkeeper, 4 defenders, 3 mids and 3 forwards. Keeping this information in mind, we would proceed further in our project.
+
+
+### Choosing the Goalkeeper:
+
+For choosing our goalkeeper, our first step would be to extract the goalkeepers from the dataset into a new dataset and drop all the irrelevant player attributes that do not correspond to a goalkeeper or won't help us in the process of ranking a goalkeeper.
+
+```{r}
+gkdata <- data[data$Position=="GK",]
+gkdata[,c("X","Overall","International.Reputation","Weak.Foot","Skill.Moves","LS","ST","RS","LW","LF","CF","RF","RW","LAM","CAM","RAM","LM","LCM","CM","RCM","RM","LWB","LDM","CDM","RDM","RWB","LB","LCB","CB","RCB","RB","Crossing","Finishing","HeadingAccuracy","ShortPassing","Volleys","Dribbling","Curve","FKAccuracy","LongPassing","BallControl","Acceleration","SprintSpeed","Agility","Reactions","Balance","ShotPower","Jumping","Stamina","Strength","LongShots","Aggression","Interceptions","Positioning","Vision","Penalties","Composure","Marking","StandingTackle","SlidingTackle")] <- list(NULL)
+head(gkdata)
+```
+
+Now, the main attributes that correspond to a goalkeepers' performance are `GKDiving, GKHandling, GKKicking, GKPositioning, GKReflexes`. However, not all of these attributes carry equal importance in deciding a goalkeepers' performance. So, after doing some considerable amount of research, we assign the following weightage to each of the above mentioned player attributes and calculate the weighted mean as a new attribute `GKOverall`.
+
+* GKDiving = 2.25  
+* GKHandling = 1.75  
+* GKKicking = 1  
+* GKPositioning = 1.75  
+* GKReflexes = 3.25  
+
+```{r}
+GKOverall = (gkdata$GKDiving*2.25+gkdata$GKHandling*1.75+gkdata$GKKicking*1+gkdata$GKPositioning*1.75+gkdata$GKReflexes*3.25)/10
+gkdata <- cbind(gkdata,GKOverall)
+```
+
+To get the goalkeeper for our dream team, we will sort the `GKOverall` attribute and take the two highest scores. The goalkeeper is then appended to a new dataset `dreamteam`
+
+```{r}
+gkdata[order(-GKOverall),]
+dreamteam <- rbind(data[data$ID=="193080",])
+```
+
+
+### Choosing the Defenders:
+
+For choosing our defenders, our first step would be to extract the defenders(CB, LB, LCB, RB, RCB) from the dataset into a new dataset and drop all the irrelevant player attributes that do not correspond to a defender or won't help us in the process of ranking a defender. 
+
+```{r}
+defdata <- data[data$Position==c("CB","LB","RB","LCB","RCB"),]
+defdata[,c("X","Overall","International.Reputation","Weak.Foot","Skill.Moves","LS","ST","RS","LW","LF","CF","RF","RW","LAM","CAM","RAM","LM","LCM","CM","RCM","RM","LWB","LDM","CDM","RDM","RWB","LB","LCB","CB","RCB","RB","Crossing","Finishing","HeadingAccuracy","Volleys","Dribbling","Curve","FKAccuracy","Agility","Balance","ShotPower","Jumping","LongShots","Aggression","Vision","Penalties","Composure","GKDiving","GKHandling","GKKicking","GKPositioning","GKReflexes")] <- list(NULL)
+head(defdata)
+```
+
+Now, the main attributes that correspond to a defenders' performance are `Positioning, StandingTackle, SlidingTackle, ShortPassing, LongPassing, Strength, Stamina, Reactions, BallControl, Acceleration, SprintSpeed, Interceptions, Marking`. However, not all of these attributes carry equal importance in deciding a goalkeepers' performance. So, after doing some considerable amount of research, we assign the following weightage to each of the above mentioned player attributes and calculate the weighted mean as a new attribute `DefOverall`.
+
+* Positioning = 2  
+* StandingTackle = 2.5  
+* SlidingTackle = 2.5  
+* ShortPassing = 1.5  
+* LongPassing = 1.5  
+* Strength = 0.5  
+* Stamina = 0.5  
+* Reactions = 0.25  
+* BallControl = 1  
+* Acceleration = 0.5  
+* SprintSpeed = 0.5  
+* Interceptions = 2  
+* Marking = 2  
+
+```{r}
+DefOverall <- ((defdata$Positioning*2+defdata$StandingTackle*2.5+defdata$SlidingTackle*2.5+defdata$ShortPassing*1.5+defdata$LongPassing*1.5+defdata$Strength*0.5+defdata$Stamina*0.5+defdata$Reactions*0.25+defdata$BallControl*1+defdata$Acceleration*0.5+defdata$SprintSpeed*0.5+defdata$Interceptions*2+defdata$Marking*2)/17.25)
+defdata <- cbind(defdata,DefOverall)
+```
+
+To get the defenders for our dream team, we will sort the `DefOverall` attribute and take the highest scores. As mentioned earlier, the formation we are going for is 4-3-3. So, we would require 2 CBs, 1 LB and 1 RB.  
+The defenders are then appended to the dataset `dreamteam`
+
+```{r}
+defdata[order(-DefOverall),]
+dreamteam <- rbind(dreamteam,data[data$ID=="164240",])
+dreamteam <- rbind(dreamteam,data[data$ID=="152729",])
+dreamteam <- rbind(dreamteam,data[data$ID=="164169",])
+dreamteam <- rbind(dreamteam,data[data$ID=="199564",])
+```
+
+### Choosing the Midfielders:
+
+For choosing our midfielder, our first step would be to extract the mids(CM, CAM, LM, LAM, LCM, RM, RAM, RCM) from the dataset into a new dataset and drop all the irrelevant player attributes that do not correspond to a midfielder or won't help us in the process of ranking a midfielder.
+
+```{r}
+middata <- data[data$Position==c("CM","CAM","LM","LAM","LCM","RM","RAM","RCM"),]
+middata[,c("X","Overall","International.Reputation","Weak.Foot","Skill.Moves","LS","ST","RS","LW","LF","CF","RF","RW","LAM","CAM","RAM","LM","LCM","CM","RCM","RM","LWB","LDM","CDM","RDM","RWB","LB","LCB","CB","RCB","RB","Balance","Interceptions","Positioning","Composure","Marking","StandingTackle","SlidingTackle","GKDiving","GKHandling","GKKicking","GKPositioning","GKReflexes")] <- list(NULL)
+head(middata)
+```
+
+
+Now, the main attributes that correspond to a midfielders' performance are `Crossing, Finishing, HeadingAccuracy, ShortPassing, Volleys, Dribbling, Curve, FKAccuracy, LongPassing, BallControl, Acceleration, SprintSpeed, Agility, Reactions, ShotPower, Jumping, Stamina, Strength, LongShots, Aggression, Vision, Penalties`. However, not all of these attributes carry equal importance in deciding a goalkeepers' performance. So, after doing some considerable amount of research, we assign the following weightage to each of the above mentioned player attributes and calculate the weighted mean as a new attribute `MidOverall`.
+
+* Crossing = 2.5  
+* Finishing = 3  
+* HeadingAccuracy = 1.5  
+* ShortPassing = 2.5
+* Volleys = 2.5  
+* Dribbling = 2.5  
+* Curve = 1.5  
+* FKAccuracy = 3  
+* LongPassing = 2.5  
+* BallControl = 3
+* Acceleration =  1.5  
+* SprintSpeed =  1.5  
+* Agility = 1.5  
+* Reactions = 0.75  
+* ShotPower = 1.5  
+* Jumping = 0.75  
+* Stamina = 0.75  
+* Strength = 0.75  
+* LongShots = 3  
+* Aggression = 0.75
+* Vision = 0.75
+* Penalties = 1.5  
+
+```{r}
+MidOverall <- ((middata$Crossing*2.5+middata$Finishing*3+middata$HeadingAccuracy*1.5+middata$ShortPassing*2.5+middata$Volleys*2.5+middata$Dribbling*2.5+middata$Curve*1.5+middata$FKAccuracy*3+middata$LongPassing*2.5+middata$BallControl*3+middata$Acceleration*1.5+middata$SprintSpeed*1.5+middata$Agility*1.5+middata$Reactions*0.75+middata$ShotPower*1.5+middata$Jumping*0.75+middata$Stamina*0.75+middata$Strength*0.75+middata$LongShots*3+middata$Aggression*0.75+middata$Vision*0.75+middata$Penalties*1.5)/38.75)
+middata <- cbind(middata,MidOverall)
+```
+
+To get the midfielders for our dream team, we will sort the `MidOverall` attribute and take the highest scores. As mentioned earlier, the formation we are going for is 4-3-3. So, we would 1 CM, 1 LM and 1 RM. 
+The midfielders are then appended to the dataset `dreamteam`
+
+```{r}
+middata[order(-MidOverall),]
+dreamteam <- rbind(dreamteam,data[data$ID=="194765",])
+dreamteam <- rbind(dreamteam,data[data$ID=="171877",])
+dreamteam <- rbind(dreamteam,data[data$ID=="202166",])
+```
+
+
+### Choosing the Forwards:
+
+For choosing our forwards, our first step would be to extract the forwards(ST, CF, RF, RS, RW, LF, LS, LW) from the dataset into a new dataset and drop all the irrelevant player attributes that do not correspond to a forward or won't help us in the process of ranking a forward.
+
+```{r}
+fordata <- data[data$Position==c("ST","CF","RF","RS","RW","LF","LS","LW"),]
+fordata[,c("X","Overall","International.Reputation","Weak.Foot","Skill.Moves","LS","ST","RS","LW","LF","CF","RF","RW","LAM","CAM","RAM","LM","LCM","CM","RCM","RM","LWB","LDM","CDM","RDM","RWB","LB","LCB","CB","RCB","RB","Balance","Interceptions","Positioning","Composure","Marking","StandingTackle","SlidingTackle","GKDiving","GKHandling","GKKicking","GKPositioning","GKReflexes")] <- list(NULL)
+head(fordata)
+```
+
+Now, the main attributes that correspond to a forwards' performance are `Crossing, Finishing, HeadingAccuracy, ShortPassing, Volleys, Dribbling, Curve, FKAccuracy, LongPassing, BallControl, Acceleration, SprintSpeed, Agility, Reactions, ShotPower, Jumping, Stamina, Strength, LongShots, Aggression, Vision, Penalties`. However, not all of these attributes carry equal importance in deciding a forwards' performance. So, after doing some considerable amount of research, we assign the following weightage to each of the above mentioned player attributes and calculate the weighted mean as a new attribute `ForOverall`.
+
+* Crossing = 2.5  
+* Finishing = 3  
+* HeadingAccuracy = 1.5  
+* ShortPassing = 2.5
+* Volleys = 2.5  
+* Dribbling = 2.5  
+* Curve = 1.5  
+* FKAccuracy = 3  
+* LongPassing = 2.5  
+* BallControl = 3
+* Acceleration =  1.5  
+* SprintSpeed =  1.5  
+* Agility = 1.5  
+* Reactions = 0.75  
+* ShotPower = 1.5  
+* Jumping = 0.75  
+* Stamina = 0.75  
+* Strength = 0.75  
+* LongShots = 3  
+* Aggression = 0.75
+* Vision = 0.75
+* Penalties = 1.5  
+
+```{r}
+ForOverall <- ((fordata$Crossing*2.5+fordata$Finishing*3+fordata$HeadingAccuracy*1.5+fordata$ShortPassing*2.5+fordata$Volleys*2.5+fordata$Dribbling*2.5+fordata$Curve*1.5+fordata$FKAccuracy*3+fordata$LongPassing*2.5+fordata$BallControl*3+fordata$Acceleration*1.5+fordata$SprintSpeed*1.5+fordata$Agility*1.5+fordata$Reactions*0.75+fordata$ShotPower*1.5+fordata$Jumping*0.75+fordata$Stamina*0.75+fordata$Strength*0.75+fordata$LongShots*3+fordata$Aggression*0.75+fordata$Vision*0.75+fordata$Penalties*1.5)/38.75)
+fordata <- cbind(fordata,ForOverall)
+```
+
+To get the forwards for our dream team, we will sort the `ForOverall` attribute and take the highest scores. As mentioned earlier, the formation we are going for is 4-3-3. So, we would require 1 CF, 1 LW and 1 RW.  
+The forwards are then appended to the dataset `dreamteam`
+
+```{r}
+fordata[order(-ForOverall),]
+dreamteam <- rbind(dreamteam,data[data$ID=="202126",])
+dreamteam <- rbind(dreamteam,data[data$ID=="183277",])
+dreamteam <- rbind(dreamteam,data[data$ID=="175943",])
+```
+
+
+### Result and Some Further EDA:
+
+So, we finally have our dream team ready. 
+
+```{r}
+dreamteam
+```
+
+We now plot Potential Scores of the players in our dream team to get a rough estimate of the stats of the players. As we can see from the plot, all the players in our team avaerage an FIFA Potential Score of 85+ with the goalkeeper, one midfielder and two forwards averaging 90+.
+
+```{r}
+plot(dreamteam$Potential,type="o",xlab="Player Index",ylab="Potential",col="red")
+```
+
+We also wish to see which club frequent in our dream team and how all the clubs compare when it comes to having the most number of players oon our dream team.
+
+```{r}
+mun=sum(dreamteam$Club=="Manchester United")
+psg=sum(dreamteam$Club=="Paris Saint-Germain")
+fcb=sum(dreamteam$Club=="FC Barcelona")
+atm=sum(dreamteam$Club=="Atlético Madrid")
+npi=sum(dreamteam$Club=="Napoli")
+tth=sum(dreamteam$Club=="Tottenham Hotspur")
+chl=sum(dreamteam$Club=="Chelsea")
+team<-c(mun,psg,fcb,atm,npi,tth,chl)
+teamname<-c("Manchester United","Paris Saint-Germain","FC Barcelona","Atlético Madrid","Napoli","Tottenham Hotspur","Chelsea")
+colors=c("red","maroon","violet","yellow","cyan","black","blue")
+barplot(team,main="Frequency of Clubs",xlab="Team",ylab="Frequency",col=colors)
+legend("topright",teamname,fill=colors,cex=0.70)
+```
+
+Finally, we wish to get a ratio of the preferred foot for the players in our team. 
+
+```{r}
+right=sum(dreamteam$Preferred.Foot=="Right")
+left=sum(dreamteam$Preferred.Foot=="Left")
+x <- c(right,left)
+labels<-c("Right","Left")
+pie(x,labels,main="Right vs. Left",col=c("red","blue"))
+```
